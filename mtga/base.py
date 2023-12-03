@@ -133,15 +133,18 @@ class MTGReader(object):
                 arr = sparse.csr_matrix((data, indptr, cols), shape)
                 assert (arr == chunk.values).all()
                 self.card_data.append(arr)
-                print(f'Processed chunk {i+1}/{n_chunks}.')
+                print(f"Processed chunk {i+1}/{n_chunks}.")
             self.noncard_data = pd.concat(self.noncard_data)
             self.card_data = sparse.vstack(self.card_data)
             self.card_data = self.card_data.tocsc()
             self.noncard_data.to_csv(self.cached_noncard_data,index=False)
+            print(f"Wrote non-card data to {self.cached_noncard_data}.")
             with open(self.cached_card_data, 'wb') as file:
                 pickle.dump(self.card_data, file)
+            print(f"Wrote card data to {self.cached_card_data}.")
         else:
             self.noncard_data = pd.read_csv(self.cached_noncard_data)
             with open(self.cached_card_data, 'rb') as file:
                 self.card_data = pickle.load(file)
-        return self.noncard_data, self.card_data
+        res = {'noncard_data':self.noncard_data, 'card_data':self.card_data}
+        return res
