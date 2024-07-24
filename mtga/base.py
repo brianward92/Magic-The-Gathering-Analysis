@@ -54,13 +54,13 @@ class MTGReader(object):
         )
 
         # cached sparse result
-        cache_file_dir = (
+        self.cache_file_dir = (
             f"data_type={data_type}::set_code={set_code}::limited_type={limited_type}"
         )
-        cache_file_dir = f"{dat_path}/processed/{cache_file_dir}"
-        os.makedirs(cache_file_dir, exist_ok=True)
-        self.cached_noncard_data = f"{cache_file_dir}/noncard_data.csv"
-        self.cached_card_data = f"{cache_file_dir}/card_data.pkl"
+        self.cache_file_dir = os.path.join(dat_path, "processed", self.cache_file_dir)
+        os.makedirs(self.cache_file_dir, exist_ok=True)
+        self.cached_noncard_data = os.path.join(self.cache_file_dir, "noncard_data.csv")
+        self.cached_card_data = os.path.join(self.cache_file_dir, "card_data.pkl")
         self.noncard_data = None
         self.card_data = None
 
