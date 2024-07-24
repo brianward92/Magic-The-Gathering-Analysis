@@ -49,8 +49,8 @@ class MTGReader(object):
     ):
         # input file
         dat_path = os.path.expanduser(dat_path)
-        self.file_path = (
-            f"{dat_path}/{data_type}_public.{set_code}.{limited_type}.csv.gz"
+        self.file_path = os.path.join(
+            dat_path, f"{data_type}_public.{set_code}.{limited_type}.csv.gz"
         )
 
         # cached sparse result
