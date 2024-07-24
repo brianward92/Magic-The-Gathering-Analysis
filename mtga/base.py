@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
+from common.py import logs
+
+
+log = logs.get_logger()
 
 DATA_TYPES = [
     "draft",
@@ -64,7 +68,7 @@ class MTGReader(object):
         with gzip.open(self.file_path, "rt") as file:
             header = next(csv.reader(file))
             self.set_card_meta(header)
-            print(
+            log.info(
                 f"Created reader with the following non-card columns:\n{', '.join(self.noncard_columns)}."
             )
         self._n_lines = None
@@ -143,15 +147,15 @@ class MTGReader(object):
                 arr = sparse.csr_matrix((data, indptr, cols), shape)
                 assert (arr == chunk.values).all()
                 self.card_data.append(arr)
-                print(f"Processed chunk {i+1}/{n_chunks}.")
+                log.info(f"Processed chunk {i+1}/{n_chunks}.")
             self.noncard_data = pd.concat(self.noncard_data)
             self.card_data = sparse.vstack(self.card_data)
             self.card_data = self.card_data.tocsc()
             self.noncard_data.to_csv(self.cached_noncard_data, index=False)
-            print(f"Wrote non-card data to {self.cached_noncard_data}.")
+            log.info(f"Wrote non-card data to {self.cached_noncard_data}.")
             with open(self.cached_card_data, "wb") as file:
                 pickle.dump(self.card_data, file)
-            print(f"Wrote card data to {self.cached_card_data}.")
+            log.info(f"Wrote card data to {self.cached_card_data}.")
         else:
             self.noncard_data = pd.read_csv(self.cached_noncard_data)
             with open(self.cached_card_data, "rb") as file:
