@@ -49,23 +49,24 @@ class MTGReader(object):
     ):
         # input file
         dat_path = os.path.expanduser(dat_path)
-        self.file_path = os.path.join(
-            dat_path, f"{data_type}_public.{set_code}.{limited_type}.csv.gz"
+        self.raw_file_path = os.path.join(
+            dat_path, "raw", f"{data_type}_public.{set_code}.{limited_type}.csv.gz"
         )
 
-        # cached sparse result
-        self.cache_file_dir = (
-            f"data_type={data_type}::set_code={set_code}::limited_type={limited_type}"
+        # cached usable format
+        self.processed_dir = os.path.join(
+            dat_path,
+            "processed",
+            f"data_type={data_type}::set_code={set_code}::limited_type={limited_type}",
         )
-        self.cache_file_dir = os.path.join(dat_path, "processed", self.cache_file_dir)
-        os.makedirs(self.cache_file_dir, exist_ok=True)
-        self.cached_noncard_data = os.path.join(self.cache_file_dir, "noncard_data.csv")
-        self.cached_card_data = os.path.join(self.cache_file_dir, "card_data.pkl")
+        os.makedirs(self.processed_dir, exist_ok=True)
+        self.cached_noncard_data = os.path.join(self.processed_dir, "noncard_data.csv")
+        self.cached_card_data = os.path.join(self.processed_dir, "card_data.pkl")
         self.noncard_data = None
         self.card_data = None
 
         # metadata
-        with gzip.open(self.file_path, "rt") as file:
+        with gzip.open(self.raw_file_path, "rt") as file:
             header = next(csv.reader(file))
             self.set_card_meta(header)
             log.info(
@@ -78,7 +79,7 @@ class MTGReader(object):
     @property
     def n_lines(self):
         if self._n_lines is None:
-            with gzip.open(self.file_path, "rt") as file:
+            with gzip.open(self.raw_file_path, "rt") as file:
                 self._n_lines = sum(1 for line in file)
         return self._n_lines
 
@@ -139,7 +140,7 @@ class MTGReader(object):
             self.card_data = []
             n_chunks = self.n_lines // self.chunk_size + 1
             for i, chunk in enumerate(
-                pd.read_csv(self.file_path, chunksize=self.chunk_size)
+                pd.read_csv(self.raw_file_path, chunksize=self.chunk_size)
             ):
                 self.noncard_data.append(chunk[self.noncard_columns])
                 chunk = chunk.drop(self.noncard_columns, axis=1)
