@@ -101,7 +101,7 @@ class GameDataReader(MTGReader):
             header = next(csv.reader(file))
             self.set_card_meta(header)
             log.info(
-                f"Created `GameDataReader with the following non-card columns:\n"
+                f"Created `GameDataReader` with the following non-card columns:\n"
                 + ", ".join(self.noncard_columns)
             )
         self._n_lines = None
@@ -191,3 +191,14 @@ class GameDataReader(MTGReader):
                 return self.get_data(force_refresh=True)
         res = {"noncard_data": self.noncard_data, "card_data": self.card_data}
         return res
+
+class ReplayDataReader(MTGReader):
+    def __init__(
+        self,
+        set_code,
+        limited_type,
+        dat_path=DEFAULT_DATA_DIR,
+        chunk_size=10000,
+    ):
+        # set up input file, output cache directory
+        self.setup_disk_meta(set_code, limited_type, "replay_data", dat_path)
