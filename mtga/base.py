@@ -37,15 +37,19 @@ CARD_POSITIONS = [
     "tutored",
 ]
 
+DEFAULT_DATA_DIR = "~/dat/17Lands"
+
 
 class MTGReader(object):
-    def __init__(
+    def __init__(self):
+        raise NotImplementedError("Base class.")
+
+    def setup_disk_meta(
         self,
         set_code,
         limited_type,
         data_type,
-        dat_path="~/dat/17Lands",
-        chunk_size=10000,
+        dat_path,
     ):
         # input file
         dat_path = os.path.expanduser(dat_path)
@@ -60,20 +64,7 @@ class MTGReader(object):
             f"data_type={data_type}::set_code={set_code}::limited_type={limited_type}",
         )
         os.makedirs(self.processed_dir, exist_ok=True)
-        self.cached_noncard_data = os.path.join(self.processed_dir, "noncard_data.csv")
-        self.cached_card_data = os.path.join(self.processed_dir, "card_data.pkl")
-        self.noncard_data = None
-        self.card_data = None
 
-        # metadata
-        with gzip.open(self.raw_file_path, "rt") as file:
-            header = next(csv.reader(file))
-            self.set_card_meta(header)
-            log.info(
-                f"Created reader with the following non-card columns:\n{', '.join(self.noncard_columns)}."
-            )
-        self._n_lines = None
-        self.chunk_size = chunk_size
         return
 
     @property
@@ -82,6 +73,39 @@ class MTGReader(object):
             with gzip.open(self.raw_file_path, "rt") as file:
                 self._n_lines = sum(1 for line in file)
         return self._n_lines
+
+
+class GameDataReader(MTGReader):
+
+    def __init__(
+        self,
+        set_code,
+        limited_type,
+        dat_path=DEFAULT_DATA_DIR,
+        chunk_size=10000,
+    ):
+        # set up input file, output cache directory
+        self.setup_disk_meta(set_code, limited_type, "game_data", dat_path)
+
+        # game data split b/w card and non-card data
+        self.cached_noncard_data = os.path.join(self.processed_dir, "noncard_data.csv")
+        self.cached_card_data = os.path.join(self.processed_dir, "card_data.pkl")
+
+        # cache read
+        self.noncard_data = None
+        self.card_data = None
+
+        # metadata
+        with gzip.open(self.raw_file_path, "rt") as file:
+            header = next(csv.reader(file))
+            self.set_card_meta(header)
+            log.info(
+                f"Created `GameDataReader with the following non-card columns:\n" + ', '.join(self.noncard_columns)
+            )
+        self._n_lines = None
+        self.chunk_size = chunk_size
+
+        return
 
     def set_card_meta(self, header):
         # check
