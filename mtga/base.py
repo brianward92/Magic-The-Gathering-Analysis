@@ -94,13 +94,15 @@ class GameDataReader(MTGReader):
         # cache read
         self.noncard_data = None
         self.card_data = None
+        self.is_loaded = False
 
         # metadata
         with gzip.open(self.raw_file_path, "rt") as file:
             header = next(csv.reader(file))
             self.set_card_meta(header)
             log.info(
-                f"Created `GameDataReader with the following non-card columns:\n" + ', '.join(self.noncard_columns)
+                f"Created `GameDataReader with the following non-card columns:\n"
+                + ", ".join(self.noncard_columns)
             )
         self._n_lines = None
         self.chunk_size = chunk_size
@@ -153,13 +155,7 @@ class GameDataReader(MTGReader):
         return data, indices, indptr, cards.shape
 
     def get_data(self, force_refresh=False):
-        is_written = os.path.exists(self.cached_noncard_data) and os.path.exists(
-            self.cached_card_data
-        )
-        is_loaded = (self.noncard_data is not None) and (self.card_data is not None)
-        if is_loaded:
-            return self.noncard_data, self.card_data
-        elif (not is_written) or force_refresh:
+        if force_refresh:
             self.noncard_data = []
             self.card_data = []
             n_chunks = self.n_lines // self.chunk_size + 1
@@ -181,9 +177,17 @@ class GameDataReader(MTGReader):
             with open(self.cached_card_data, "wb") as file:
                 pickle.dump(self.card_data, file)
             log.info(f"Wrote card data to {self.cached_card_data}.")
+        elif self.is_loaded:
+            return self.noncard_data, self.card_data
         else:
-            self.noncard_data = pd.read_csv(self.cached_noncard_data)
-            with open(self.cached_card_data, "rb") as file:
-                self.card_data = pickle.load(file)
+            is_written = os.path.exists(self.cached_noncard_data) and os.path.exists(
+                self.cached_card_data
+            )
+            if is_written:
+                self.noncard_data = pd.read_csv(self.cached_noncard_data)
+                with open(self.cached_card_data, "rb") as file:
+                    self.card_data = pickle.load(file)
+            else:  # user does not know what they are doing...
+                return self.get_data(force_refresh=True)
         res = {"noncard_data": self.noncard_data, "card_data": self.card_data}
         return res
