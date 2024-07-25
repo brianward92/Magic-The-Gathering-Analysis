@@ -64,6 +64,7 @@ class MTGReader(object):
             f"data_type={data_type}::set_code={set_code}::limited_type={limited_type}",
         )
         os.makedirs(self.processed_dir, exist_ok=True)
+        self._n_lines = None
 
         return
 
@@ -104,7 +105,6 @@ class GameDataReader(MTGReader):
                 f"Created `GameDataReader` with the following non-card columns:\n"
                 + ", ".join(self.noncard_columns)
             )
-        self._n_lines = None
         self.chunk_size = chunk_size
 
         return
@@ -191,6 +191,7 @@ class GameDataReader(MTGReader):
                 return self.get_data(force_refresh=True)
         res = {"noncard_data": self.noncard_data, "card_data": self.card_data}
         return res
+
 
 class ReplayDataReader(MTGReader):
     def __init__(
