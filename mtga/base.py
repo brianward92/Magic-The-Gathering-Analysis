@@ -29,13 +29,6 @@ LIMITED_TYPES = [
     "TradSealed",
 ]
 
-CARD_POSITIONS = [
-    "drawn",
-    "deck",
-    "opening_hand",
-    "sideboard",
-    "tutored",
-]
 
 DEFAULT_DATA_DIR = "~/dat/17Lands"
 
@@ -74,6 +67,17 @@ class MTGReader(object):
             with gzip.open(self.raw_file_path, "rt") as file:
                 self._n_lines = sum(1 for line in file)
         return self._n_lines
+
+
+## Game Data
+
+CARD_POSITIONS = [
+    "drawn",
+    "deck",
+    "opening_hand",
+    "sideboard",
+    "tutored",
+]
 
 
 class GameDataReader(MTGReader):
@@ -191,6 +195,15 @@ class GameDataReader(MTGReader):
                 return self.get_data(force_refresh=True)
         res = {"noncard_data": self.noncard_data, "card_data": self.card_data}
         return res
+
+
+## Replay Data
+
+CATEGORY_TO_PATTERN = {
+    "deck": r"^deck_(.+)",
+    "sideboard": r"^sideboard_(.+)",
+    "turn": r"^(.*)_turn_(\d+)_(.*)$",
+}
 
 
 class ReplayDataReader(MTGReader):
