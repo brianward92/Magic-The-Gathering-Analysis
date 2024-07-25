@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import csv
 import gzip
 import os
@@ -68,6 +69,10 @@ class MTGReader(object):
                 self._n_lines = sum(1 for line in file)
         return self._n_lines
 
+    @abstractmethod
+    def set_column_meta(self):
+        raise NotImplementedError("Base class.")
+
 
 ## Game Data
 
@@ -104,7 +109,7 @@ class GameDataReader(MTGReader):
         # metadata
         with gzip.open(self.raw_file_path, "rt") as file:
             header = next(csv.reader(file))
-            self.set_card_meta(header)
+            self.set_column_meta(header)
             log.info(
                 f"Created `GameDataReader` with the following non-card columns:\n"
                 + ", ".join(self.noncard_columns)
@@ -113,7 +118,7 @@ class GameDataReader(MTGReader):
 
         return
 
-    def set_card_meta(self, header):
+    def set_column_meta(self, header):
         # check
         assert len(set(header)) == len(header), "Duplicated columns!"
 
