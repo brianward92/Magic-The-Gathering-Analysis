@@ -35,32 +35,63 @@ DEFAULT_DATA_DIR = "~/dat/17Lands"
 
 
 class MTGReader(object):
-    def __init__(self):
-        raise NotImplementedError("Base class.")
-
-    def setup_disk_meta(
+    def __init__(
         self,
         set_code,
         limited_type,
         data_type,
         dat_path,
+        processed_sep="::",
     ):
-        # input file
-        dat_path = os.path.expanduser(dat_path)
-        self.raw_file_path = os.path.join(
-            dat_path, "raw", f"{data_type}_public.{set_code}.{limited_type}.csv.gz"
-        )
+        # Set Init Data
+        self.set_code = set_code
+        self.limited_type = limited_type
+        self.data_type = data_type
+        self.dat_path = os.path.expanduser(dat_path)
+        self.processed_sep = processed_sep
 
-        # cached usable format
-        self.processed_dir = os.path.join(
-            dat_path,
-            "processed",
-            f"data_type={data_type}::set_code={set_code}::limited_type={limited_type}",
-        )
-        os.makedirs(self.processed_dir, exist_ok=True)
+        # Set Up Disk Locations for Processed Data
+        self.setup_disk_meta()
+
+        # Set Column Metadata
+        self.set_header()
+
+        # Other Generic Data
         self._n_lines = None
 
+    def setup_disk_meta(self):
+
+        # input file
+        self.raw_file_path = ".".join(
+            [f"{self.data_type}_public", self.set_code, self.limited_type, "csv.gz"]
+        )
+        self.raw_file_path = os.path.join(self.dat_path, "raw", self.raw_file_path)
+
+        # cached usable format
+        self.processed_dir = self.processed_sep.join(
+            [
+                f"data_type={self.data_type}",
+                f"set_code={self.set_code}",
+                f"limited_type={self.limited_type}",
+            ]
+        )
+        self.processed_dir = os.path.join(
+            self.dat_path, "processed", self.processed_dir
+        )
+        os.makedirs(self.processed_dir, exist_ok=True)
+
         return
+
+    def set_header(self):
+        with gzip.open(self.raw_file_path, "rt") as file:
+            self.header = next(csv.reader(file))
+            self.set_column_meta(self.header)
+        assert len(set(self.header)) == len(self.header), "Duplicated columns!"
+        return
+
+    @abstractmethod
+    def set_column_meta(self, header):
+        raise NotImplementedError("Base class.")
 
     @property
     def n_lines(self):
@@ -68,10 +99,6 @@ class MTGReader(object):
             with gzip.open(self.raw_file_path, "rt") as file:
                 self._n_lines = sum(1 for line in file)
         return self._n_lines
-
-    @abstractmethod
-    def set_column_meta(self):
-        raise NotImplementedError("Base class.")
 
 
 ## Game Data
@@ -85,7 +112,7 @@ CARD_POSITIONS = [
 ]
 
 
-class GameDataReader(MTGReader):
+class GameDataBaseReader(MTGReader):
 
     def __init__(
         self,
@@ -94,8 +121,7 @@ class GameDataReader(MTGReader):
         dat_path=DEFAULT_DATA_DIR,
         chunk_size=10000,
     ):
-        # set up input file, output cache directory
-        self.setup_disk_meta(set_code, limited_type, "game_data", dat_path)
+        super().__init__(set_code, limited_type, "game_data", dat_path)
 
         # game data split b/w card and non-card data
         self.cached_noncard_data = os.path.join(self.processed_dir, "noncard_data.csv")
@@ -106,21 +132,11 @@ class GameDataReader(MTGReader):
         self.card_data = None
         self.is_loaded = False
 
-        # metadata
-        with gzip.open(self.raw_file_path, "rt") as file:
-            header = next(csv.reader(file))
-            self.set_column_meta(header)
-            log.info(
-                f"Created `GameDataReader` with the following non-card columns:\n"
-                + ", ".join(self.noncard_columns)
-            )
         self.chunk_size = chunk_size
 
         return
 
     def set_column_meta(self, header):
-        # check
-        assert len(set(header)) == len(header), "Duplicated columns!"
 
         # initialize meta
         self.card_meta = dict()  # positions -> cards
@@ -219,5 +235,4 @@ class ReplayDataReader(MTGReader):
         dat_path=DEFAULT_DATA_DIR,
         chunk_size=10000,
     ):
-        # set up input file, output cache directory
-        self.setup_disk_meta(set_code, limited_type, "replay_data", dat_path)
+        super().__init__(set_code, limited_type, "replay_data", dat_path)
