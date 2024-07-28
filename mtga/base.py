@@ -3,6 +3,7 @@ import csv
 import gzip
 import os
 import pickle
+import re
 
 import numpy as np
 import pandas as pd
@@ -227,7 +228,7 @@ CATEGORY_TO_PATTERN = {
 }
 
 
-class ReplayDataReader(MTGReader):
+class ReplayDataBaseReader(MTGReader):
     def __init__(
         self,
         set_code,
@@ -236,3 +237,50 @@ class ReplayDataReader(MTGReader):
         chunk_size=10000,
     ):
         super().__init__(set_code, limited_type, "replay_data", dat_path)
+
+    @staticmethod
+    def split_column_to_info(col):
+        for cat, pat in CATEGORY_TO_PATTERN.items():
+            m = re.match(pat, col)
+            if m:
+                if cat in ["deck", "sideboard"]:
+                    return cat, m.group(1)
+                elif cat == "turn":
+                    return cat, (m.group(1), m.group(2), m.group(3))
+        else:
+            return "meta", col
+
+    def set_column_meta(self, header):
+
+        self.deck_d = dict()
+        self.side_d = dict()
+        self.turn_d = dict()
+        self.meta_d = dict()
+
+        # Loop Over Columns
+        for i, c in enumerate(header):
+            cat, parts = self.split_column_to_info(c)
+            if cat in ["deck", "sideboard"]:  # key is just card name
+                out_d = self.deck_d
+                if cat == "sideboard":
+                    out_d = self.side_d
+                k = parts
+            elif cat == "turn":  # key is (player, turn number, "thing" tallied)
+                out_d = self.turn_d
+                play, turn, acts = parts
+                turn = int(turn)
+                k = (play, turn, acts)
+            else:  # key is full column name
+                assert cat == "meta"
+                out_d = self.meta_d
+                k = c  # or parts
+            # Assign
+            out_d[k] = i
+
+        ## Check and Return
+
+        assert len(self.turn_d) + len(self.meta_d) + len(self.deck_d) + len(
+            self.side_d
+        ) == len(header), "Incorrectly categorized columns!"
+
+        return
