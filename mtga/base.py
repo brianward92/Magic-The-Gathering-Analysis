@@ -101,6 +101,9 @@ class MTGReader(object):
                 self._n_lines = sum(1 for line in file)
         return self._n_lines
 
+    def read_iterator(self, chunk_size):
+        return pd.read_csv(self.raw_file_path, chunksize=chunk_size)
+
 
 ## Game Data
 
@@ -185,9 +188,7 @@ class GameDataBaseReader(MTGReader):
             self.noncard_data = []
             self.card_data = []
             n_chunks = self.n_lines // self.chunk_size + 1
-            for i, chunk in enumerate(
-                pd.read_csv(self.raw_file_path, chunksize=self.chunk_size)
-            ):
+            for i, chunk in enumerate(self.read_iterator(self.chunk_size)):
                 self.noncard_data.append(chunk[self.noncard_columns])
                 chunk = chunk.drop(self.noncard_columns, axis=1)
                 data, indptr, cols, shape = self.cards_to_cards_sparse(chunk)
