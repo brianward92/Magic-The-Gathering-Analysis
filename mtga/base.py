@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-from common.py import logs
+from common.py import base, logs
 from mtga.pub.replay_dtypes import get_dtypes
 
 
@@ -39,7 +39,10 @@ DEFAULT_DATA_DIR = "~/dat/17Lands"
 
 @lru_cache()
 def get_dtypes_cached(filename):
-    return get_dtypes(filename)
+    res = get_dtypes(filename)
+    if True:  # hack for now...
+        res = {k: "str" for k in res}
+    return res
 
 
 class MTGReader(object):
@@ -300,11 +303,17 @@ class ReplayDataBaseReader(MTGReader):
 
         return
 
-    def get_indices(self, fields, inc_won=True):
+    def get_indices(
+        self, deck_fields=None, meta_fields=None, side_fields=None, turn_fields=None
+    ):
+        assert deck_fields is None, "Unsupported `deck_fields` argument!"
+        meta_fields = base.to_list(meta_fields)
+        assert side_fields is None, "Unsupported `side_fields` argument!"
         ci = []
-        if inc_won:  # will be first column
-            ci.append(self.meta_d["won"])
-        for (p, t, f), v in self.turn_d.items():
-            if f in fields:
-                ci.append(v)
+        for f in meta_fields:
+            ci.append(self.meta_d[f])
+        if len(turn_fields) > 0:
+            for (p, t, f), v in self.turn_d.items():
+                if f in turn_fields:
+                    ci.append(v)
         return ci
