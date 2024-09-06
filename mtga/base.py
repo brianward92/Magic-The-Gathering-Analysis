@@ -36,6 +36,7 @@ LIMITED_TYPES = [
 
 DEFAULT_DATA_DIR = "~/dat/17Lands"
 
+
 @lru_cache()
 def get_dtypes_cached(filename):
     return get_dtypes(filename)
@@ -298,3 +299,12 @@ class ReplayDataBaseReader(MTGReader):
         ) == len(header), "Incorrectly categorized columns!"
 
         return
+
+    def get_indices(self, fields, inc_won=True):
+        ci = []
+        if inc_won:  # will be first column
+            ci.append(self.meta_d["won"])
+        for (p, t, f), v in self.turn_d.items():
+            if f in fields:
+                ci.append(v)
+        return ci
