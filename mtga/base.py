@@ -1,5 +1,6 @@
 from abc import abstractmethod
 import csv
+from functools import lru_cache
 import gzip
 import os
 import pickle
@@ -10,6 +11,7 @@ import pandas as pd
 from scipy import sparse
 
 from common.py import logs
+from mtga.pub.replay_dtypes import get_dtypes
 
 
 log = logs.get_logger()
@@ -33,6 +35,10 @@ LIMITED_TYPES = [
 
 
 DEFAULT_DATA_DIR = "~/dat/17Lands"
+
+@lru_cache()
+def get_dtypes_cached(filename):
+    return get_dtypes(filename)
 
 
 class MTGReader(object):
@@ -101,8 +107,15 @@ class MTGReader(object):
                 self._n_lines = sum(1 for line in file)
         return self._n_lines
 
-    def read_iterator(self, chunk_size):
-        return pd.read_csv(self.raw_file_path, chunksize=chunk_size)
+    def read_iterator(self, chunk_size, dtypes=False):
+        if dtypes:
+            return pd.read_csv(
+                self.raw_file_path,
+                chunksize=chunk_size,
+                dtype=get_dtypes_cached(self.raw_file_path),
+            )
+        else:
+            return pd.read_csv(self.raw_file_path, chunksize=chunk_size)
 
 
 ## Game Data
