@@ -341,5 +341,4 @@ class ReplayDataBaseReader(MTGReader):
                 chunk.iloc[:, fi].replace(r"\.0\b", "", regex=True).astype(int).values
             )
             log.info(f"Processed chunk {i+1}/{n_chunks}.")
-            break
         return out
