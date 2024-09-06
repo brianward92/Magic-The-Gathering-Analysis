@@ -42,6 +42,8 @@ def get_dtypes_cached(filename):
     res = get_dtypes(filename)
     if True:  # hack for now...
         res = {k: "str" for k in res}
+        if "won" in res:
+            res["won"] = "bool"
     return res
 
 
@@ -255,6 +257,7 @@ class ReplayDataBaseReader(MTGReader):
         chunk_size=10000,
     ):
         super().__init__(set_code, limited_type, "replay_data", dat_path)
+        self.chunk_size = chunk_size
 
     @staticmethod
     def split_column_to_info(col):
@@ -309,6 +312,7 @@ class ReplayDataBaseReader(MTGReader):
         assert deck_fields is None, "Unsupported `deck_fields` argument!"
         meta_fields = base.to_list(meta_fields)
         assert side_fields is None, "Unsupported `side_fields` argument!"
+        turn_fields = base.to_list(turn_fields)
         ci = []
         for f in meta_fields:
             ci.append(self.meta_d[f])
@@ -316,4 +320,26 @@ class ReplayDataBaseReader(MTGReader):
             for (p, t, f), v in self.turn_d.items():
                 if f in turn_fields:
                     ci.append(v)
+        if len(ci) == 1:
+            return ci[0]
         return ci
+
+    def get_fields(self, fields):
+        wi = self.get_indices(meta_fields=["won"])
+        fi = self.get_indices(turn_fields=fields)
+
+        out = np.zeros((self.n_lines, len(fi) + 1))
+        n_chunks = self.n_lines // self.chunk_size + 1
+
+        r0 = -self.chunk_size
+        r1 = 0
+        for i, chunk in enumerate(self.read_iterator(self.chunk_size, dtypes=True)):
+            r0 += self.chunk_size
+            r1 += self.chunk_size
+            out[r0:r1, 0] = chunk.iloc[:, wi].astype(int).values
+            out[r0:r1, 1:] = (
+                chunk.iloc[:, fi].replace(r"\.0\b", "", regex=True).astype(int).values
+            )
+            log.info(f"Processed chunk {i+1}/{n_chunks}.")
+            break
+        return out
