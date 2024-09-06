@@ -110,7 +110,7 @@ class MTGReader(object):
     def n_lines(self):
         if self._n_lines is None:
             with gzip.open(self.raw_file_path, "rt") as file:
-                self._n_lines = sum(1 for line in file)
+                self._n_lines = sum(1 for line in file) - 1
         return self._n_lines
 
     def read_iterator(self, chunk_size, dtypes=False):
