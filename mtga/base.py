@@ -314,19 +314,23 @@ class ReplayDataBaseReader(MTGReader):
         assert side_fields is None, "Unsupported `side_fields` argument!"
         turn_fields = base.to_list(turn_fields)
         ci = []
+        ls = []
         for f in meta_fields:
             ci.append(self.meta_d[f])
+            ls.append(f)
         if len(turn_fields) > 0:
             for (p, t, f), v in self.turn_d.items():
                 if f in turn_fields:
                     ci.append(v)
+                    ls.append((p, t, f))
+        res = {"indices": ci, "labels": ls}
         if len(ci) == 1:
-            return ci[0]
-        return ci
+            return {k: v[0] for k, v in res.items()}
+        return res
 
     def get_fields(self, fields):
-        wi = self.get_indices(meta_fields=["won"])
-        fi = self.get_indices(turn_fields=fields)
+        wi = self.get_indices(meta_fields=["won"])["indices"]
+        fi = self.get_indices(turn_fields=fields)["indices"]
 
         out = np.zeros((self.n_lines, len(fi) + 1))
         n_chunks = self.n_lines // self.chunk_size + 1
