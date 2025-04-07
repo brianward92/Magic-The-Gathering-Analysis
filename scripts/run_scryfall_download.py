@@ -17,6 +17,6 @@ if __name__ == "__main__":
     # Write
     cur_ts = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
     path = os.path.expanduser(f"~/dat/scryfall/all_cards_{cur_ts}.json")
-    os.makedirs(path, exist_ok=True)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     files.write(data, path)
     log.info(f"Wrote {len(data)} bytes to {path}.")
