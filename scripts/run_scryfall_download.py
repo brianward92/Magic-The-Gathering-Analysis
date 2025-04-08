@@ -22,4 +22,4 @@ if __name__ == "__main__":
     log.info(f"Wrote {len(data)} bytes to {path}.")
     symlink_path = os.path.join(os.path.dirname(path), "all_cards.json")
     files.create_symlink(symlink_path, path)
-    log.info(f"Linked {symlink_path} to {fig_path}.")
+    log.info(f"Linked {symlink_path} to {path}.")
